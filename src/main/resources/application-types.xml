@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="excsvdata" format="csv">
+      <types:shape format="weave" example="examples/ex.csv"><![CDATA[%dw 2.0
+
+type excsvdata = Array<{|  Name: String,   Email: String,   Phone: String|}> {"isQuotedString": "false",
+"header": "true",
+"headerLineNumber": "0"}
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#ab27d225-5298-4dfe-a861-f73ddeeaf53a">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="excsvdata"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

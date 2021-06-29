@@ -1,0 +1,23 @@
+http:
+   port : "8081"
+   path :  "query_csv"
+   Host :  "localhost"
+  
+sales:
+
+   username: "Navitha@vba.com"   
+   password: "![Q82CViq0CZ3oZA0p5ipwig==]"
+   Key:      "3MVG9fe4g9fhX0E5ffu_SywookMW07X.eCZPuvYC_O_0QufHrJCY0mj2CvU8fu_KR1qabv_pPpFft2fODx6By"
+   secret:   "DC0ED3A4C74BB4945BB05642938AA183C712365CF06DD1455AF49DA2826E7E35"
+   callbackurl:  "http://localhost:8089/callback"
+   authorizationurl:  "https://login.salesforce.com/services/oauth2/authorize"
+   authorizationtoken: "https://login.salesforce.com/services/oauth2/token"
+   query:               "select Name,LastName,Phone,Email from Contact"
+   
+ftp:
+
+   username:  "ftpuser"   
+   password:  "![jYVmnQ2cqFpBOxCPH28e9w==]"
+   path:       "localhost"
+   port:       "21"
+   workingdir:  "empdir"

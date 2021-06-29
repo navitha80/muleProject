@@ -1,0 +1,13 @@
+http:
+   port : "8089"
+   path :  "SFQQALL"
+   Host :  "localhost2"
+   
+db:
+   host :  "localhost2"   
+   port :  "1521"
+   
+sales:
+
+   username: "Navitha@vba.com"   
+   password: "Absyz@123"
