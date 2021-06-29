@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="53faa44e-427d-47c8-83b8-9b3f945163ec" >
+		<salesforce:config-with-oauth-connection >
+			<salesforce:oauth-authorization-code consumerKey="${secure::sales.Key}" consumerSecret="${secure::sales.secret}" authorizationUrl="${secure::sales.authorizationurl}" accessTokenUrl="${secure::sales.authorizationtoken}" before="sales_csvFlow"/>
+			<salesforce:oauth-callback-config listenerConfig="HTTP_Listener_config" callbackPath="/callback" authorizePath="/authorize" externalCallbackUrl="${secure::sales.callbackurl}" />
+		</salesforce:config-with-oauth-connection>
+	</salesforce:sfdc-config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="bf727549-e5a3-4adc-83a9-046c49d3471f" >
+		<http:listener-connection host="${secure::http.Host}" port="${secure::http.port}" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="56da4b93-5281-47fc-a329-063575d09d33" />
+	<ftp:config name="FTP_Config" doc:name="FTP Config" doc:id="f4b98eb6-a245-49b7-bd12-a30ef036f0e3" >
+		<ftp:connection workingDir="${secure::ftp.workingdir}" host="${secure::ftp.path}" username="${secure::ftp.username}" password="${secure::ftp.password}" port="${secure::ftp.port}"/>
+	</ftp:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="82c82601-41fa-46f1-b851-b59669b849ff" file="dev.yaml" key="password12345678" />
+	<flow name="sales_csvFlow" doc:id="f6419940-7b47-4509-af4f-bd4733a9c228" >
+		<http:listener doc:name="Listener" doc:id="fa85f1f6-a9e2-4d00-a0c6-1e7747a2f074" config-ref="HTTP_Listener_config" path="${secure::http.path}"/>
+		<logger level="INFO" doc:name="Logger" doc:id="551a5e89-5937-48ce-8624-effc4602cb41" message="testing scheduler"/>
+		<salesforce:query-all doc:name="Query all" doc:id="8043c5d0-dc77-4d17-bce7-3056137f1b21" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[${secure::sales.query}]]></salesforce:salesforce-query>
+		</salesforce:query-all>
+		<ee:transform doc:name="Transform Message" doc:id="ab27d225-5298-4dfe-a861-f73ddeeaf53a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Name: payload01.Name default "",
+	Email: payload01.Email default "",
+	Phone: payload01.Phone default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ftp:write doc:name="Write" doc:id="25612fcf-1b6d-48dc-9b43-5baa66e0df8f" config-ref="FTP_Config" path="#['File' ++ ( now() as String {format:'yyyy-MM-dd-hh-mm-ss'}  ) ++'.csv']"/>
+		<set-payload value="#['Successfully Uploaded File' ++ ( now() as String {format:'yyyy-MM-dd-hh-mm-ss'}  ) ++ '-' ++ (random() * 1000) ++ '.txt']" doc:name="Set Payload" doc:id="5de9ed1d-79e6-4a0b-8060-ab08c209be9b" />
+		<logger level="INFO" doc:name="Logger" doc:id="123b5b52-d438-4124-b5aa-2f29e96bdc70" message="#[payload]"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="d8e8c6ae-7c9a-4b63-81a6-fdb1c8af7cff" type="SALESFORCE:CONNECTIVITY, SALESFORCE:TIMEOUT">
+				<set-payload value='#["Please check network"]' doc:name="Set Payload" doc:id="76b8a1e6-c4fd-4998-bed2-cc598836c1a7" />
+				<ee:transform doc:name="Transform Message" doc:id="e93b525a-8bee-476f-86f4-2b8961261e4d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0236da8c-f0a0-413d-a21e-0e4b62c33169" type="FTP:ACCESS_DENIED, FTP:CONNECTIVITY, FTP:RETRY_EXHAUSTED">
+				<ee:transform doc:name="Transform Message" doc:id="1c7f431a-c22f-4cdd-a166-795cc1790fca" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+	"message": "Please check FTP network "
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
